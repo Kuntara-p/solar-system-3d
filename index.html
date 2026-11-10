@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบสุริยะจำลอง • สื่อการสอนวิทยาศาสตร์</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- แถบเครื่องมือด้านบน -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">🪐</div>
+        <div>
+          <h1>ระบบสุริยะจำลอง</h1>
+          <p class="brand-sub">Interactive Solar System Explorer</p>
+        </div>
+      </div>
+
+      <nav class="filter-pills" aria-label="ตัวกรองกลุ่มดาวเคราะห์">
+        <button class="filter-btn active" data-filter="all" type="button">ทั้งหมด</button>
+        <button class="filter-btn" data-filter="inner" type="button">ดาวเคราะห์ชั้นใน</button>
+        <button class="filter-btn" data-filter="outer" type="button">ดาวเคราะห์ชั้นนอก</button>
+        <button class="filter-btn" data-filter="small" type="button">ดาวเคราะห์แคระ &amp; ดาวหาง</button>
+      </nav>
+
+      <div class="top-actions">
+        <div class="view-mode-switch" role="group" aria-label="สลับโหมด 2 มิติ และ 3 มิติ">
+          <button id="btnMode3D" class="mode-switch-btn active" data-view-mode="3d" type="button">🌐 3D</button>
+          <button id="btnMode2D" class="mode-switch-btn" data-view-mode="2d" type="button">🗺️ 2D</button>
+        </div>
+        <button id="btnOpenCompare" class="action-btn" type="button">
+          <span aria-hidden="true">📏</span> เทียบขนาด &amp; ข้อมูล
+        </button>
+        <button id="btnOpenQuiz" class="action-btn accent" type="button">
+          <span aria-hidden="true">🚀</span> ภารกิจ Quiz
+        </button>
+        <button id="btnOpenGuide" class="action-btn icon-only" type="button" title="คู่มือการใช้งานและวิธีสอน" aria-label="คู่มือการใช้งาน">
+          ❓
+        </button>
+      </div>
+    </header>
+
+    <!-- พื้นที่จำลองหลัก + แผงรายละเอียด -->
+    <main class="stage-wrapper">
+      <section class="canvas-stage" aria-label="พื้นที่จำลองการโคจรระบบสุริยะ">
+        <canvas id="solarCanvas" class="hidden"></canvas>
+        <canvas id="solar3DCanvas"></canvas>
+        <canvas id="labels3DCanvas"></canvas>
+
+        <!-- เครื่องมือกล้องและนาฬิกาเวลา -->
+        <div class="hud-top-left">
+          <div class="clock-chip" id="simClockDisplay">เวลาผ่านไป: 0 วัน (0.00 ปีโลก)</div>
+          <div class="zoom-group" role="group" aria-label="ควบคุมการซูม">
+            <button id="btnZoomIn" class="hud-btn" type="button" title="ซูมเข้า (+)">＋</button>
+            <button id="btnZoomOut" class="hud-btn" type="button" title="ซูมออก (-)">－</button>
+            <button id="btnResetView" class="hud-btn wide" type="button" title="กลับสู่มุมมองทั้งระบบ (R)">⟲ เต็มระบบ</button>
+          </div>
+          <div class="preset-group" id="cameraPresets3D" role="group" aria-label="มุมมองกล้อง 3 มิติ">
+            <button class="hud-btn wide preset-btn active" data-preset="perspective" type="button">🔭 มุมเอียง 3 มิติ</button>
+            <button class="hud-btn wide preset-btn" data-preset="top" type="button">⬇️ ด้านบน</button>
+            <button class="hud-btn wide preset-btn" data-preset="side" type="button">📐 ด้านข้าง</button>
+          </div>
+        </div>
+
+        <!-- คำแนะนำสั้นๆ -->
+        <div class="hint-banner" id="hintBanner">
+          💡 คลิกที่ดวงดาวเพื่อดูข้อมูล • ลากซ้ายเพื่อหมุน 360° • คลิกขวาเพื่อเลื่อน • หมุนลูกกลิ้งเพื่อซูม
+        </div>
+
+        <!-- Tooltip ตอนชี้เมาส์ -->
+        <div id="hoverTooltip" class="hover-tooltip hidden" role="status" aria-live="polite"></div>
+
+        <!-- แถบควบคุมด้านล่าง -->
+        <div class="bottom-dock">
+          <div class="sim-controls-row">
+            <div class="play-speed-group">
+              <button id="btnPlayPause" class="play-btn" type="button" aria-label="เล่นหรือหยุดชั่วคราว">
+                ⏸ หยุดชั่วคราว
+              </button>
+              <div class="speed-presets" role="group" aria-label="ความเร็วจำลอง">
+                <button class="speed-btn" data-speed="1" type="button">1 วัน/วิ</button>
+                <button class="speed-btn" data-speed="7" type="button">1 สัปดาห์/วิ</button>
+                <button class="speed-btn active" data-speed="30" type="button">1 เดือน/วิ</button>
+                <button class="speed-btn" data-speed="365.25" type="button">1 ปี/วิ</button>
+                <button class="speed-btn" data-speed="1826.25" type="button">5 ปี/วิ</button>
+              </div>
+            </div>
+
+            <div class="layer-toggles">
+              <label class="toggle-chip">
+                <input type="checkbox" id="chkOrbits" checked />
+                <span>วงโคจร</span>
+              </label>
+              <label class="toggle-chip">
+                <input type="checkbox" id="chkLabels" checked />
+                <span>ป้ายชื่อ</span>
+              </label>
+              <label class="toggle-chip">
+                <input type="checkbox" id="chkAsteroids" checked />
+                <span>แถบดาวเคราะห์น้อย</span>
+              </label>
+              <label class="toggle-chip">
+                <input type="checkbox" id="chkExtras" checked />
+                <span>พลูโต &amp; ดาวหาง</span>
+              </label>
+              <label class="toggle-chip" id="wrapChkAxes3D">
+                <input type="checkbox" id="chkAxes3D" checked />
+                <span>แกนหมุนดาว (3D)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="planet-dock" id="planetDock" aria-label="แถบเลือกดวงดาวด่วน"></div>
+        </div>
+      </section>
+
+      <!-- แผงข้อมูลดาวเคราะห์ด้านข้าง -->
+      <aside id="detailDrawer" class="detail-drawer hidden" aria-label="รายละเอียดวัตถุอวกาศ">
+        <div class="drawer-nav">
+          <div class="drawer-step-btns">
+            <button id="btnPrevBody" class="step-btn" type="button">‹ ก่อนหน้า</button>
+            <button id="btnNextBody" class="step-btn" type="button">ถัดไป ›</button>
+          </div>
+          <button id="btnCloseDrawer" class="close-btn" type="button" aria-label="ปิดแผงข้อมูล">✕</button>
+        </div>
+
+        <div class="drawer-hero">
+          <canvas id="previewPlanetCanvas" width="84" height="84"></canvas>
+          <div class="drawer-title-wrap">
+            <span id="detailCategory" class="category-badge">หมวดหมู่</span>
+            <h2 id="detailNameTh">ชื่อดาว</h2>
+            <p id="detailNameEn" class="en-name">Planet</p>
+            <p id="detailSubtitle" class="subtitle-text"></p>
+          </div>
+        </div>
+
+        <div class="follow-bar">
+          <button id="btnFollowBody" class="follow-btn" type="button">
+            🎯 ติดตามกล้องที่ดาวดวงนี้
+          </button>
+        </div>
+
+        <div class="metrics-grid" id="detailMetrics"></div>
+
+        <div class="drawer-section">
+          <h3>✨ จุดเด่นน่ารู้</h3>
+          <ul id="detailHighlights" class="highlights-list"></ul>
+        </div>
+
+        <div class="curriculum-tip" id="detailTip"></div>
+
+        <div class="astro-calc">
+          <h3>🧑‍🚀 ลองไปอยู่บนดาวดวงนี้!</h3>
+          <p class="calc-desc">กรอกข้อมูลของนักเรียนเพื่อดูว่าเมื่ออยู่บนดาวดวงนี้จะเป็นอย่างไร</p>
+          <div class="calc-inputs">
+            <label>
+              <span>น้ำหนักบนโลก (กก.)</span>
+              <input id="inputEarthWeight" type="number" min="1" max="500" step="1" value="35" />
+            </label>
+            <label>
+              <span>อายุบนโลก (ปี)</span>
+              <input id="inputEarthAge" type="number" min="1" max="150" step="0.5" value="10" />
+            </label>
+          </div>
+          <div class="calc-results" id="calcResults"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- หน้าต่างเทียบขนาดและข้อมูล -->
+  <div id="compareModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="compareTitle">📏 ห้องทดลองเปรียบเทียบขนาดและข้อมูลดาวเคราะห์</h2>
+          <p>สังเกตความแตกต่างของขนาดจริงระหว่างดาวเคราะห์หิน ดาวเคราะห์แก๊ส และดวงอาทิตย์</p>
+        </div>
+        <button class="close-btn" data-close-modal="compareModal" type="button" aria-label="ปิดหน้าต่าง">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="scale-switch-bar">
+          <button id="btnScalePlanets" class="scale-mode-btn active" type="button">
+            เทียบดาวเคราะห์ 8 ดวง + พลูโต (เห็นขนาดต่างกันชัด)
+          </button>
+          <button id="btnScaleSun" class="scale-mode-btn" type="button">
+            เทียบกับดวงอาทิตย์ (สเกลจริง: ดวงอาทิตย์ใหญ่ 109× โลก!)
+          </button>
+        </div>
+
+        <div class="compare-canvas-wrap">
+          <canvas id="compareSizeCanvas"></canvas>
+        </div>
+
+        <div class="duel-section">
+          <h3>⚖️ เปรียบเทียบดาว 2 ดวงตัวต่อตัว</h3>
+          <div class="duel-selectors">
+            <label>
+              <span>ดาวดวงที่ 1</span>
+              <select id="compareSelectA"></select>
+            </label>
+            <span class="vs-badge">VS</span>
+            <label>
+              <span>ดาวดวงที่ 2</span>
+              <select id="compareSelectB"></select>
+            </label>
+          </div>
+          <div id="duelSummary" class="duel-summary"></div>
+          <div id="duelGrid" class="duel-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- หน้าต่างภารกิจตอบคำถาม Quiz -->
+  <div id="quizModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="quizTitle">
+    <div class="modal-card quiz-modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="quizTitle">🚀 ภารกิจตอบคำถามพิชิตระบบสุริยะ</h2>
+          <p>ทดสอบความรู้เรื่องวงโคจร ลักษณะดาวเคราะห์ และปรากฏการณ์ในระบบสุริยะ</p>
+        </div>
+        <button class="close-btn" data-close-modal="quizModal" type="button" aria-label="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body" id="quizBody"></div>
+    </div>
+  </div>
+
+  <!-- หน้าต่างคู่มือครูและวิธีใช้งาน -->
+  <div id="guideModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="modal-card guide-modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="guideTitle">📘 คู่มือการใช้งานสำหรับครูและนักเรียน</h2>
+          <p>แนะนำแนวทางการใช้สื่อประกอบการสอนเรื่องระบบสุริยะ</p>
+        </div>
+        <button class="close-btn" data-close-modal="guideModal" type="button" aria-label="ปิดหน้าต่าง">✕</button>
+      </div>
+      <div class="modal-body guide-content">
+        <div class="guide-grid">
+          <div class="guide-box">
+            <h3>🖱️ การควบคุมหน้าจอ</h3>
+            <ul>
+              <li><strong>คลิกที่ดวงดาว</strong> หรือเลือกจากแถบด้านล่างเพื่อเปิดการ์ดข้อมูล</li>
+              <li><strong>โหมด 3D:</strong> ลากซ้ายเพื่อหมุนมุมมอง 360°, คลิกขวาเพื่อเลื่อนฉาก, กดมุมมอง <em>ด้านบน/ด้านข้าง</em> เพื่อสังเกตระนาบวงโคจรและแกนหมุนเอียงของดาว</li>
+              <li><strong>โหมด 2D:</strong> สลับกลับมุมมอง 2 มิติได้ทุกเมื่อจากปุ่ม <strong>🌐 3D / 🗺️ 2D</strong> มุมขวาบน</li>
+              <li><strong>หมุนลูกกลิ้งเมาส์</strong> หรือกดปุ่ม <strong>＋ / －</strong> เพื่อซูมเข้า–ออก</li>
+              <li>กดปุ่ม <strong>🎯 ติดตามกล้อง</strong> เพื่อหมุนตามดาวเคราะห์ที่กำลังโคจร</li>
+            </ul>
+          </div>
+          <div class="guide-box">
+            <h3>⌨️ คีย์ลัดสำหรับครูเปิดสอนหน้าชั้น</h3>
+            <ul>
+              <li><kbd>Space</kbd> : เล่น / หยุดเวลาชั่วคราว</li>
+              <li><kbd>0</kbd> : เลือกดวงอาทิตย์</li>
+              <li><kbd>1</kbd> – <kbd>8</kbd> : กระโดดไปดาวพุธถึงดาวเนปจูนทันที</li>
+              <li><kbd>R</kbd> : รีเซ็ตมุมมองกลับมาเห็นเต็มระบบสุริยะ</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="guide-box full">
+          <h3>🎓 3 กิจกรรมแนะนำในคาบเรียน (15–30 นาที)</h3>
+          <ol>
+            <li><strong>สำรวจกฎความเร็ววงโคจร:</strong> ปรับความเร็วเป็น <code>1 ปี/วิ</code> แล้วให้นักเรียนสังเกตว่าดาวพุธ โลก และดาวพฤหัสบดี ใช้เวลาโคจรรอบดวงอาทิตย์ต่างกันอย่างไร</li>
+            <li><strong>แยกกลุ่มดาวเคราะห์ชั้นใน–ชั้นนอก:</strong> กดปุ่มตัวกรองด้านบนสลับระหว่าง <em>ดาวเคราะห์ชั้นใน</em> กับ <em>ดาวเคราะห์ชั้นนอก</em> เพื่อสังเกตว่ามี <em>แถบดาวเคราะห์น้อย</em> คั่นกลางอยู่</li>
+            <li><strong>ไขปริศนาหางดาวหาง:</strong> เร่งเวลาให้เห็นดาวหางโคจรเข้าใกล้ดวงอาทิตย์ แล้วถามนักเรียนว่า <em>"ทำไมหางดาวหางถึงไม่ลากอยู่ด้านหลังเสมอ แต่กลับชี้ออกจากดวงอาทิตย์?"</em></li>
+          </ol>
+          <p class="scale-note">
+            * หมายเหตุเชิงวิชาการ: ในหน้าจำลองการโคจรหลัก ระยะห่างและขนาดของดวงดาวถูกปรับสเกลเพื่อให้มองเห็นและคลิกได้ชัดเจนในห้องเรียน ส่วนขนาดเปรียบเทียบตามอัตราส่วนจริงสามารถกดดูได้ที่เมนู <strong>"เทียบขนาด &amp; ข้อมูล"</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="vendor/three-bundle.min.js"></script>
+  <script defer src="src/solarData.js"></script>
+  <script defer src="src/renderer.js"></script>
+  <script defer src="src/planetTextures3d.js"></script>
+  <script defer src="src/renderer3d.js"></script>
+  <script defer src="src/app.js"></script>
+</body>
+</html>
